@@ -31,10 +31,12 @@ func NewCapture(d *Device) *Capture {
 // It also releases the capture data.
 func (c *Capture) SingleShot() error {
 
+	log.Println("Singleshot start")
 	timeout := int(1000 / c.device.Fps)
 	var capture C.k4a_capture_t
 	res := C.k4a_device_get_capture(c.device.GetHandle(), &capture, C.int(timeout))
 	defer C.k4a_capture_release(capture)
+	log.Println("Singleshot capture done")
 
 	if res != C.K4A_WAIT_RESULT_SUCCEEDED {
 		return fmt.Errorf("Cannot get capture: %d", res)
@@ -42,18 +44,23 @@ func (c *Capture) SingleShot() error {
 		return fmt.Errorf("Running into timeout")
 	}
 
+	log.Println("Singleshot get color")
 	// get color
 	color := C.k4a_capture_get_color_image(capture)
 	if color == nil {
 		fmt.Println("No color image captured")
 	}
-	c.readColorBuffer(color)
+	log.Println("Singleshot get depth")
 
 	// get depth
 	depth := C.k4a_capture_get_depth_image(capture)
 	if depth == nil {
 		fmt.Println("No depth image captured")
 	}
+
+	log.Println("Singleshot read data")
+	c.readColorBuffer(color)
+	log.Println("Singleshot read data done")
 
 	return nil
 }

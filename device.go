@@ -73,7 +73,7 @@ func (d *Device) Open() error {
 	log.Println("Successfully opened device")
 
 	err := d.UpdateConfig(DeviceConfig{
-		Fps:             C.K4A_FRAMES_PER_SECOND_15,
+		Fps:             C.K4A_FRAMES_PER_SECOND_5,
 		DepthMode:       C.K4A_DEPTH_MODE_WFOV_UNBINNED, // C.K4A_DEPTH_MODE_NFOV_UNBINNED
 		ColorFormat:     C.K4A_IMAGE_FORMAT_COLOR_BGRA32,
 		ColorResolution: C.K4A_COLOR_RESOLUTION_720P,
