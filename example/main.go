@@ -39,7 +39,10 @@ func main() {
 	}
 	log.Println("Serial:", serial)
 
-	d.Start()
-	time.Sleep(1 * time.Second)
+	err = d.Start()
+	if err != nil {
+		log.Println(err)
+	}
+	time.Sleep(500 * time.Millisecond)
 	d.Stop()
 }
