@@ -16,14 +16,14 @@ import (
 // Capture encapsulates a Kinect capture
 type Capture struct {
 	device *Device
-
-	colorImage Image
+	images map[ImageType]Image
 }
 
 // NewCapture returns a new capture object
 func NewCapture(d *Device) *Capture {
 	return &Capture{
 		device: d,
+		images: make(map[ImageType]Image),
 	}
 }
 
@@ -59,39 +59,46 @@ func (c *Capture) SingleShot() error {
 	}
 
 	log.Println("Singleshot read data")
-	c.readColorBuffer(color)
+	c.readImageBuffer(color, ColorImage)
+	c.readImageBuffer(depth, DepthImage)
 	log.Println("Singleshot read data done")
 
 	return nil
 }
 
-// ColorImage converts and returns the RGBA data into a Go image
+// ColorImage converts and returns the RGBA data into a Go image.
+// If no image could be found, nil is returned
 func (c *Capture) ColorImage() *image.RGBA {
+
+	img, ok := c.images[ColorImage]
+	if !ok {
+		log.Println("No color image found")
+		return nil
+	}
 	i := 0
-	img := image.NewRGBA(image.Rect(0, 0, c.colorImage.Width, c.colorImage.Height))
-	for y := 0; y < c.colorImage.Height; y++ {
-		for x := 0; x < c.colorImage.Width; x++ {
-			img.Pix[i] = c.colorImage.Raw[i+2]
-			img.Pix[i+1] = c.colorImage.Raw[i+1]
-			img.Pix[i+2] = c.colorImage.Raw[i]
-			img.Pix[i+3] = c.colorImage.Raw[i+3]
+	col := image.NewRGBA(image.Rect(0, 0, img.Width, img.Height))
+	for y := 0; y < img.Height; y++ {
+		for x := 0; x < img.Width; x++ {
+			col.Pix[i] = img.Raw[i+2]
+			col.Pix[i+1] = img.Raw[i+1]
+			col.Pix[i+2] = img.Raw[i]
+			col.Pix[i+3] = img.Raw[i+3]
 			i += 4
 		}
 	}
-	return img
+	return col
 }
 
-// read the data from C to a Go buffer
-func (c *Capture) readColorBuffer(input C.k4a_image_t) {
+func (c *Capture) readImageBuffer(input C.k4a_image_t, imageType ImageType) {
 
 	ptr := C.k4a_image_get_buffer(input)
 	if ptr == nil {
-		log.Fatal("Cannot get color image pointer")
+		log.Fatal("Cannot get pointer")
 	}
 	sz := C.k4a_image_get_size(input)
 
-	c.colorImage = Image{
-		Type:   ColorImage,
+	c.images[imageType] = Image{
+		Type:   imageType,
 		Width:  int(C.k4a_image_get_width_pixels(input)),
 		Height: int(C.k4a_image_get_height_pixels(input)),
 		Raw:    C.GoBytes(unsafe.Pointer(ptr), C.int(sz)),
