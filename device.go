@@ -54,7 +54,8 @@ type Device struct {
 // NewDevice creates a new k4ago device
 func NewDevice(id uint32) *Device {
 	return &Device{
-		ID: id,
+		ID:     id,
+		config: getDefaultConfig(),
 	}
 }
 
@@ -83,12 +84,20 @@ func (d *Device) Open() error {
 	return nil
 }
 
+// Start starts the camera stream
 func (d *Device) Start() error {
+
+	res := C.k4a_device_start_cameras(d.handle, &d.config)
+	if res != 0 {
+		return fmt.Errorf("Cannot start camera: %d", res)
+	}
+
 	return nil
 }
 
-func (d *Device) Stop() error {
-	return nil
+// Stop stops the camera stream
+func (d *Device) Stop() {
+	C.k4a_device_stop_cameras(d.handle)
 }
 
 // Close releases all resources
@@ -148,4 +157,19 @@ func (d *Device) getCalibration() error {
 		return fmt.Errorf("Cannot read calibration data: %d", res)
 	}
 	return nil
+}
+
+func getDefaultConfig() C.k4a_device_configuration_t {
+	// those are the defaults from the k4a library
+	var config C.k4a_device_configuration_t
+	config.color_format = C.K4A_IMAGE_FORMAT_COLOR_MJPG
+	config.color_resolution = C.K4A_COLOR_RESOLUTION_OFF
+	config.depth_mode = C.K4A_DEPTH_MODE_OFF
+	config.camera_fps = C.K4A_FRAMES_PER_SECOND_30
+	config.synchronized_images_only = false
+	config.depth_delay_off_color_usec = 0
+	config.wired_sync_mode = C.K4A_WIRED_SYNC_MODE_STANDALONE
+	config.subordinate_delay_off_master_usec = 0
+	config.disable_streaming_indicator = false
+	return config
 }

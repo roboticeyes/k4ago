@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/roboticeyes/k4ago"
 	"log"
+	"time"
 )
 
 func countDevices() uint {
@@ -37,4 +38,8 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println("Serial:", serial)
+
+	d.Start()
+	time.Sleep(1 * time.Second)
+	d.Stop()
 }
