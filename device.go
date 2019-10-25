@@ -33,12 +33,22 @@ func (v DeviceVersions) String() string {
 	return "Versions [rgb: " + v.Rgb + ", depth: " + v.Depth + ", audio: " + v.Audio + ", sensor: " + v.Sensor + "]"
 }
 
+// DeviceConfig configures the device parameters
+type DeviceConfig struct {
+	Fps             int
+	DepthMode       int
+	ColorFormat     int
+	ColorResolution int
+	SyncDepthAndRgb bool
+}
+
 // Device represents one Kinect DK device
 type Device struct {
 	ID uint32
 
-	// deviceHandle stores the native pointer
-	handle C.k4a_device_t
+	handle      C.k4a_device_t               // stores the native pointer
+	config      C.k4a_device_configuration_t // stores the device config parameters
+	calibration C.k4a_calibration_t          // stores the calibration
 }
 
 // NewDevice creates a new k4ago device
@@ -57,6 +67,27 @@ func (d *Device) Open() error {
 		return fmt.Errorf("Cannot open device")
 	}
 	log.Println("Successfully opened device")
+
+	err := d.UpdateConfig(DeviceConfig{
+		Fps:             C.K4A_FRAMES_PER_SECOND_15,
+		DepthMode:       C.K4A_DEPTH_MODE_WFOV_UNBINNED, // C.K4A_DEPTH_MODE_NFOV_UNBINNED
+		ColorFormat:     C.K4A_IMAGE_FORMAT_COLOR_BGRA32,
+		ColorResolution: C.K4A_COLOR_RESOLUTION_720P,
+		SyncDepthAndRgb: true,
+	})
+	// if calibration cannot be retrieved, close the device
+	if err != nil {
+		d.Close()
+		return err
+	}
+	return nil
+}
+
+func (d *Device) Start() error {
+	return nil
+}
+
+func (d *Device) Stop() error {
 	return nil
 }
 
@@ -95,6 +126,26 @@ func (d *Device) SerialNumber() (string, error) {
 		return "", fmt.Errorf("Cannot read serial number (sz=%d): error %d", sz, res)
 	}
 	serial := C.GoString((*C.char)(ptr))
-	log.Println("Serial number:", serial)
 	return serial, nil
+}
+
+// UpdateConfig sets the configuration for the Kinect sensor and reads the new calibration data
+func (d *Device) UpdateConfig(config DeviceConfig) error {
+	d.config.camera_fps = (C.k4a_fps_t)(config.Fps)
+	d.config.depth_mode = (C.k4a_depth_mode_t)(config.DepthMode)
+	d.config.color_format = (C.k4a_image_format_t)(config.ColorFormat)
+	d.config.color_resolution = (C.k4a_color_resolution_t)(config.ColorResolution)
+	d.config.synchronized_images_only = (C.bool)(config.SyncDepthAndRgb)
+
+	return d.getCalibration()
+}
+
+// Get the calibration information for the given config
+func (d *Device) getCalibration() error {
+
+	res := C.k4a_device_get_calibration(d.handle, d.config.depth_mode, d.config.color_resolution, &d.calibration)
+	if res != 0 {
+		return fmt.Errorf("Cannot read calibration data: %d", res)
+	}
+	return nil
 }

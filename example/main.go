@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/roboticeyes/k4ago"
+	"log"
 )
 
 func countDevices() uint {
@@ -12,28 +13,28 @@ func countDevices() uint {
 }
 
 func main() {
-	fmt.Println("k4ago examples")
+	log.Println("k4ago")
 
 	if countDevices() == 0 {
 		panic("No device found.")
 	}
 	d := k4ago.NewDevice(k4ago.Default)
-	d.Open()
+	if err := d.Open(); err != nil {
+		panic(err)
+	}
 	defer d.Close()
 
 	// Get versions
 	versions, err := d.Versions()
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
-	fmt.Println(versions)
+	log.Println(versions)
 
 	// Get serial number
 	serial, err := d.SerialNumber()
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal(err)
 	}
-	fmt.Println("Serial:", serial)
+	log.Println("Serial:", serial)
 }
