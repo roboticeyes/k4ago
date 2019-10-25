@@ -84,19 +84,17 @@ func (d *Device) Versions() (DeviceVersions, error) {
 }
 
 // SerialNumber returns the serial number of the device
-// TODO currently not working, requires investigation
 func (d *Device) SerialNumber() (string, error) {
 
-	var sz C.size_t
+	var sz C.size_t = snLength
 	ptr := C.malloc(C.sizeof_char * snLength)
-	C.memset(ptr, 0, snLength)
 	defer C.free(unsafe.Pointer(ptr))
 
 	res := C.k4a_device_get_serialnum(d.handle, (*C.char)(ptr), &sz)
-	serial := C.GoString((*C.char)(ptr))
-	log.Println("Serial number:", serial)
 	if res != 0 {
 		return "", fmt.Errorf("Cannot read serial number (sz=%d): error %d", sz, res)
 	}
-	return C.GoString((*C.char)(ptr)), nil
+	serial := C.GoString((*C.char)(ptr))
+	log.Println("Serial number:", serial)
+	return serial, nil
 }

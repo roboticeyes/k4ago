@@ -35,5 +35,5 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println(serial)
+	fmt.Println("Serial:", serial)
 }
