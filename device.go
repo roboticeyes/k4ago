@@ -46,7 +46,8 @@ type DeviceConfig struct {
 
 // Device represents one Kinect DK device
 type Device struct {
-	ID uint32
+	ID  uint32 // device ID
+	Fps uint32 // actual FPS
 
 	handle      C.k4a_device_t               // stores the native pointer
 	config      C.k4a_device_configuration_t // stores the device config parameters
@@ -96,7 +97,6 @@ func (d *Device) Start() error {
 
 	// camera requires some time to stabilize itself
 	var capture C.k4a_capture_t
-
 	attempts := 0
 	for {
 		waitRes := C.k4a_device_get_capture(d.handle, &capture, 100)
@@ -112,6 +112,11 @@ func (d *Device) Start() error {
 		time.Sleep(60 * time.Millisecond)
 	}
 	return nil
+}
+
+// GetHandle returns the native handle
+func (d *Device) GetHandle() C.k4a_device_t {
+	return d.handle
 }
 
 // Stop stops the camera stream
@@ -165,6 +170,7 @@ func (d *Device) UpdateConfig(config DeviceConfig) error {
 	d.config.color_resolution = (C.k4a_color_resolution_t)(config.ColorResolution)
 	d.config.synchronized_images_only = (C.bool)(config.SyncDepthAndRgb)
 
+	d.Fps = convertConfigFpsToRealFps(config.Fps)
 	return d.getCalibration()
 }
 
@@ -191,4 +197,17 @@ func getDefaultConfig() C.k4a_device_configuration_t {
 	config.subordinate_delay_off_master_usec = 0
 	config.disable_streaming_indicator = false
 	return config
+}
+
+func convertConfigFpsToRealFps(fps int) uint32 {
+
+	switch fps {
+	case C.K4A_FRAMES_PER_SECOND_5:
+		return 5
+	case C.K4A_FRAMES_PER_SECOND_15:
+		return 15
+	case C.K4A_FRAMES_PER_SECOND_30:
+		return 30
+	}
+	return 0
 }

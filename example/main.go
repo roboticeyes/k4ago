@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/roboticeyes/k4ago"
+	"image/png"
 	"log"
-	"time"
+	"os"
 )
 
 func countDevices() uint {
@@ -39,10 +40,23 @@ func main() {
 	}
 	log.Println("Serial:", serial)
 
+	// Start camera for capture mode
 	err = d.Start()
 	if err != nil {
 		log.Println(err)
 	}
-	time.Sleep(500 * time.Millisecond)
+
+	capture := k4ago.NewCapture(d)
+	capture.SingleShot()
+
+	colorImage := capture.ColorImage()
+	colorFile, err := os.Create("color.png")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer colorFile.Close()
+	png.Encode(colorFile, colorImage)
+
+	// Stop camera
 	d.Stop()
 }
