@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/roboticeyes/k4ago"
 	"image/png"
 	"log"
 	"os"
+
+	"github.com/roboticeyes/k4ago"
+	"golang.org/x/image/tiff"
 )
 
 func countDevices() uint {
@@ -16,6 +18,7 @@ func countDevices() uint {
 
 func main() {
 	log.Println("k4ago")
+	var err error
 
 	if countDevices() == 0 {
 		panic("No device found.")
@@ -27,18 +30,18 @@ func main() {
 	defer d.Close()
 
 	// Get versions
-	versions, err := d.Versions()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println(versions)
+	// versions, err := d.Versions()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println(versions)
 
 	// Get serial number
-	serial, err := d.SerialNumber()
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Serial:", serial)
+	// serial, err := d.SerialNumber()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// log.Println("Serial:", serial)
 
 	// Start camera for capture mode
 	err = d.Start()
@@ -56,6 +59,14 @@ func main() {
 	}
 	defer colorFile.Close()
 	png.Encode(colorFile, colorImage)
+
+	depthImage := capture.DepthImage()
+	depthFile, err := os.Create("depth.tif")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer depthFile.Close()
+	tiff.Encode(depthFile, depthImage, &tiff.Options{})
 
 	// Stop camera
 	d.Stop()

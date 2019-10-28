@@ -73,8 +73,9 @@ func (d *Device) Open() error {
 	log.Println("Successfully opened device")
 
 	err := d.UpdateConfig(DeviceConfig{
-		Fps:             C.K4A_FRAMES_PER_SECOND_5,
-		DepthMode:       C.K4A_DEPTH_MODE_WFOV_UNBINNED, // C.K4A_DEPTH_MODE_NFOV_UNBINNED
+		Fps: C.K4A_FRAMES_PER_SECOND_15,
+		// DepthMode: C.K4A_DEPTH_MODE_WFOV_UNBINNED, // C.K4A_DEPTH_MODE_NFOV_UNBINNED
+		DepthMode:       C.K4A_DEPTH_MODE_NFOV_2X2BINNED,
 		ColorFormat:     C.K4A_IMAGE_FORMAT_COLOR_BGRA32,
 		ColorResolution: C.K4A_COLOR_RESOLUTION_720P,
 		SyncDepthAndRgb: true,
@@ -95,21 +96,25 @@ func (d *Device) Start() error {
 		return fmt.Errorf("Cannot start camera: %d", res)
 	}
 
+	// TODO required?
 	// camera requires some time to stabilize itself
-	var capture C.k4a_capture_t
-	attempts := 0
-	for {
-		waitRes := C.k4a_device_get_capture(d.handle, &capture, 100)
-		if waitRes == C.K4A_WAIT_RESULT_SUCCEEDED {
-			log.Println("Yeah, device is now ready ...")
-			C.k4a_capture_release(capture)
-			break
+	preCapture := false
+	if preCapture {
+		var capture C.k4a_capture_t
+		attempts := 0
+		for {
+			waitRes := C.k4a_device_get_capture(d.handle, &capture, 100)
+			if waitRes == C.K4A_WAIT_RESULT_SUCCEEDED {
+				log.Println("Yeah, device is now ready ...")
+				C.k4a_capture_release(capture)
+				break
+			}
+			if attempts > maxCaptureAttempts {
+				return fmt.Errorf("Capture timed out")
+			}
+			attempts++
+			time.Sleep(60 * time.Millisecond)
 		}
-		if attempts > maxCaptureAttempts {
-			return fmt.Errorf("Capture timed out")
-		}
-		attempts++
-		time.Sleep(60 * time.Millisecond)
 	}
 	return nil
 }
