@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image/png"
 	"log"
 	"os"
 
+	"github.com/go-gl/mathgl/mgl32"
+	"github.com/roboticeyes/gorex/encoding/rex"
 	"github.com/roboticeyes/k4ago"
 	"golang.org/x/image/tiff"
 )
@@ -88,27 +91,27 @@ func main() {
 	width := depthTransformed.Bounds().Dx()
 	height := depthTransformed.Bounds().Dy()
 
-	objFile, err := os.Create("points.obj")
-	defer objFile.Close()
+	mesh := rex.Mesh{ID: 0}
 
 	validMap := make(map[int]int)
 
 	i := 0
-	idx := 1 // OBJ starts at 1 !!!!
+	idx := 0
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			depth := depthTransformed.Gray16At(x, y).Y
 			if depth > min && depth < max {
 				validMap[getHash(x, y, width)] = idx
 				idx++
-				fmt.Fprintf(objFile, "v %f %f %f %f %f %f\n",
-					float32(x)*spacing,
-					float32(y)*spacing,
-					float32(depth)*0.004,
-					float32(colorImage.Pix[i])/255.0,
-					float32(colorImage.Pix[i+1])/255.0,
-					float32(colorImage.Pix[i+2])/255.0,
-				)
+				xC := float32(x) * spacing
+				yC := float32(y) * spacing
+				zC := float32(depth) * 0.004
+				r := float32(colorImage.Pix[i]) / 255.0
+				g := float32(colorImage.Pix[i+1]) / 255.0
+				b := float32(colorImage.Pix[i+2]) / 255.0
+
+				mesh.Coords = append(mesh.Coords, mgl32.Vec3{xC, -yC, zC})
+				mesh.Colors = append(mesh.Colors, mgl32.Vec3{r, g, b})
 			}
 			i += 4
 		}
@@ -130,22 +133,40 @@ func main() {
 
 			// triangle 1
 			if v00.valid && v01.valid && v11.valid {
-				fmt.Fprintf(objFile, "f %d %d %d\n",
-					v00.idx,
-					v01.idx,
-					v11.idx,
-				)
+				mesh.Triangles = append(mesh.Triangles, rex.Triangle{
+					V0: uint32(v00.idx),
+					V1: uint32(v11.idx),
+					V2: uint32(v01.idx),
+				})
 			}
 			// triangle 2
 			if v00.valid && v11.valid && v10.valid {
-				fmt.Fprintf(objFile, "f %d %d %d\n",
-					v00.idx,
-					v11.idx,
-					v10.idx,
-				)
+				mesh.Triangles = append(mesh.Triangles, rex.Triangle{
+					V0: uint32(v00.idx),
+					V1: uint32(v10.idx),
+					V2: uint32(v11.idx),
+				})
 			}
 		}
 	}
+
+	// assign material
+	mat := rex.NewMaterial(1)
+	mat.KdRgb = mgl32.Vec3{0.9, 0.7, 0.1}
+	mesh.MaterialID = 1
+
+	rexFile := rex.File{}
+	rexFile.Meshes = append(rexFile.Meshes, mesh)
+	rexFile.Materials = append(rexFile.Materials, mat)
+	var rexBuf bytes.Buffer
+	e := rex.NewEncoder(&rexBuf)
+	err = e.Encode(rexFile)
+	if err != nil {
+		panic(err)
+	}
+	fout, _ := os.Create("face.rex")
+	fout.Write(rexBuf.Bytes())
+	defer fout.Close()
 }
 
 func getHash(x, y, width int) int {
