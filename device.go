@@ -51,7 +51,7 @@ type Device struct {
 
 	handle      C.k4a_device_t               // stores the native pointer
 	config      C.k4a_device_configuration_t // stores the device config parameters
-	calibration C.k4a_calibration_t          // stores the calibration
+	Calibration C.k4a_calibration_t          // stores the calibration
 }
 
 // NewDevice creates a new k4ago device
@@ -176,13 +176,13 @@ func (d *Device) UpdateConfig(config DeviceConfig) error {
 	d.config.synchronized_images_only = (C.bool)(config.SyncDepthAndRgb)
 
 	d.Fps = convertConfigFpsToRealFps(config.Fps)
-	return d.getCalibration()
+	return d.readCalibration()
 }
 
-// Get the calibration information for the given config
-func (d *Device) getCalibration() error {
+// Read the calibration information for the given config
+func (d *Device) readCalibration() error {
 
-	res := C.k4a_device_get_calibration(d.handle, d.config.depth_mode, d.config.color_resolution, &d.calibration)
+	res := C.k4a_device_get_calibration(d.handle, d.config.depth_mode, d.config.color_resolution, &d.Calibration)
 	if res != 0 {
 		return fmt.Errorf("Cannot read calibration data: %d", res)
 	}
