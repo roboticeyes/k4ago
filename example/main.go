@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	min     = 100
+	min     = 500
 	max     = 1000
 	spacing = float32(0.005)
 )
@@ -105,7 +105,7 @@ func main() {
 				idx++
 				xC := float32(x) * spacing
 				yC := float32(y) * spacing
-				zC := float32(depth) * 0.004
+				zC := float32(depth) * 0.0035
 				r := float32(colorImage.Pix[i]) / 255.0
 				g := float32(colorImage.Pix[i+1]) / 255.0
 				b := float32(colorImage.Pix[i+2]) / 255.0
