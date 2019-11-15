@@ -152,7 +152,7 @@ func main() {
 
 	// assign material
 	mat := rex.NewMaterial(1)
-	mat.KdRgb = mgl32.Vec3{0.9, 0.7, 0.1}
+	mat.KdRgb = mgl32.Vec3{1, 1, 1}
 	mesh.MaterialID = 1
 
 	rexFile := rex.File{}
