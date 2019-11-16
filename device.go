@@ -11,7 +11,6 @@ import "C"
 import (
 	"fmt"
 	"log"
-	"time"
 	"unsafe"
 )
 
@@ -46,8 +45,9 @@ type DeviceConfig struct {
 
 // Device represents one Kinect DK device
 type Device struct {
-	ID  uint32 // device ID
-	Fps uint32 // actual FPS
+	ID        uint32 // device ID
+	Fps       uint32 // actual FPS
+	Capturing bool   // indicates if the device is in capturing mode
 
 	handle      C.k4a_device_t               // stores the native pointer
 	config      C.k4a_device_configuration_t // stores the device config parameters
@@ -95,27 +95,7 @@ func (d *Device) Start() error {
 	if res != 0 {
 		return fmt.Errorf("Cannot start camera: %d", res)
 	}
-
-	// TODO required?
-	// camera requires some time to stabilize itself
-	preCapture := false
-	if preCapture {
-		var capture C.k4a_capture_t
-		attempts := 0
-		for {
-			waitRes := C.k4a_device_get_capture(d.handle, &capture, 100)
-			if waitRes == C.K4A_WAIT_RESULT_SUCCEEDED {
-				log.Println("Yeah, device is now ready ...")
-				C.k4a_capture_release(capture)
-				break
-			}
-			if attempts > maxCaptureAttempts {
-				return fmt.Errorf("Capture timed out")
-			}
-			attempts++
-			time.Sleep(60 * time.Millisecond)
-		}
-	}
+	d.Capturing = true
 	return nil
 }
 
@@ -127,10 +107,16 @@ func (d *Device) GetHandle() C.k4a_device_t {
 // Stop stops the camera stream
 func (d *Device) Stop() {
 	C.k4a_device_stop_cameras(d.handle)
+	d.Capturing = false
 }
 
 // Close releases all resources
 func (d *Device) Close() {
+
+	// make sure that the camera is stopped before closing
+	if d.Capturing {
+		d.Stop()
+	}
 	C.k4a_device_close(d.handle)
 	log.Println("Successfully closed device")
 }
