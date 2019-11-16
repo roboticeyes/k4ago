@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"image/png"
 	"log"
 	"os"
@@ -61,29 +62,14 @@ func main() {
 	capture := k4ago.NewCapture(d)
 	capture.SingleShot()
 
+	// Extract further layers
 	colorImage := capture.ColorImage()
-	colorFile, err := os.Create("color.png")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer colorFile.Close()
-	png.Encode(colorFile, colorImage)
-
+	// savePng("color.png", colorImage)
 	// depthImage := capture.DepthImage()
-	// depthFile, err := os.Create("depth.tif")
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// defer depthFile.Close()
-	// tiff.Encode(depthFile, depthImage, &tiff.Options{})
+	// saveTiff("depth.tif", depthImage)
 
 	depthTransformed := capture.DepthTransformed()
-	depthTransformedFile, err := os.Create("depth_transformed.tif")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer depthTransformedFile.Close()
-	tiff.Encode(depthTransformedFile, depthTransformed, &tiff.Options{})
+	// saveTiff("depth.tif", depthTransformed)
 
 	// Stop camera
 	d.Stop()
@@ -171,4 +157,25 @@ func main() {
 
 func getHash(x, y, width int) int {
 	return y*width + x
+}
+
+func savePng(fileName string, img image.Image) {
+
+	f, err := os.Create(fileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	png.Encode(f, img)
+
+}
+
+func saveTiff(fileName string, img image.Image) {
+
+	f, err := os.Create(fileName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+	tiff.Encode(f, img, &tiff.Options{})
 }
