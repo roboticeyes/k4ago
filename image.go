@@ -5,6 +5,8 @@ const (
 	ColorImage = iota
 	// DepthImage ...
 	DepthImage
+	// DepthTransformed is the depth image mapped on the RGB image
+	DepthTransformed
 )
 
 // ImageType for the type

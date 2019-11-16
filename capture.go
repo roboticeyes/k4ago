@@ -65,8 +65,12 @@ func (c *Capture) SingleShot() error {
 	c.readImageBuffer(depth, DepthImage)
 	log.Println("Singleshot read data done")
 
-	log.Println(c.images[ColorImage].Width, c.images[ColorImage].Height)
-	log.Println(c.images[DepthImage].Width, c.images[DepthImage].Height)
+	// Transform depth to color
+	c.getTransformedDepthImage(depth)
+
+	log.Println("Image color: ", c.images[ColorImage].Width, c.images[ColorImage].Height)
+	log.Println("Image depth: ", c.images[DepthImage].Width, c.images[DepthImage].Height)
+	log.Println("Image dt:    ", c.images[DepthTransformed].Width, c.images[DepthTransformed].Height)
 
 	return nil
 }
@@ -110,7 +114,30 @@ func (c *Capture) DepthImage() *image.Gray16 {
 	i := 0
 	for y := 0; y < img.Height; y++ {
 		for x := 0; x < img.Width; x++ {
-			val := uint16(raw[i])<<8 | uint16(raw[i+1])
+			val := uint16(raw[i+1])<<8 | uint16(raw[i])
+			depth.SetGray16(x, y, color.Gray16{Y: val})
+			i += 2
+		}
+	}
+	return depth
+}
+
+// DepthTransformed converts and returns the transformed depth value as a gray16 image.
+// If no image could be found, nil is returned
+func (c *Capture) DepthTransformed() *image.Gray16 {
+
+	img, ok := c.images[DepthTransformed]
+	if !ok {
+		log.Println("No depth transformed image found")
+		return nil
+	}
+	raw := img.Raw
+	depth := image.NewGray16(image.Rect(0, 0, img.Width, img.Height))
+
+	i := 0
+	for y := 0; y < img.Height; y++ {
+		for x := 0; x < img.Width; x++ {
+			val := uint16(raw[i+1])<<8 | uint16(raw[i])
 			depth.SetGray16(x, y, color.Gray16{Y: val})
 			i += 2
 		}
@@ -132,4 +159,32 @@ func (c *Capture) readImageBuffer(input C.k4a_image_t, imageType ImageType) {
 		Height: int(C.k4a_image_get_height_pixels(input)),
 		Raw:    C.GoBytes(unsafe.Pointer(ptr), C.int(sz)),
 	}
+}
+
+func (c *Capture) getTransformedDepthImage(depth C.k4a_image_t) error {
+
+	// allocate the depth buffer
+	var transformedDepthImage C.k4a_image_t
+	res := C.k4a_image_create(C.K4A_IMAGE_FORMAT_DEPTH16,
+		c.device.Calibration.color_camera_calibration.resolution_width,
+		c.device.Calibration.color_camera_calibration.resolution_height,
+		c.device.Calibration.color_camera_calibration.resolution_width*2, &transformedDepthImage)
+
+	if res != C.K4A_RESULT_SUCCEEDED {
+		log.Println("Cannot allocate depth image")
+		return fmt.Errorf("Depth image could not be allocated")
+	}
+
+	transformation := C.k4a_transformation_create(&c.device.Calibration)
+
+	res = C.k4a_transformation_depth_image_to_color_camera(
+		transformation, depth, transformedDepthImage)
+
+	if res != C.K4A_RESULT_SUCCEEDED {
+		log.Println("Cannot convert depth image")
+		return fmt.Errorf("Cannot convert depth image")
+	}
+
+	c.readImageBuffer(transformedDepthImage, DepthTransformed)
+	return nil
 }
