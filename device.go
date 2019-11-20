@@ -1,7 +1,7 @@
 package k4ago
 
 /*
-#cgo LDFLAGS: -lk4a
+#cgo LDFLAGS: -L/usr/local/lib64 -lk4a
 #include <stdlib.h>
 #include <string.h>
 #include <k4a/k4a.h>
