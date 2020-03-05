@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/go-gl/mathgl/mgl32"
-	"github.com/roboticeyes/gorex/encoding/rex"
+	"github.com/roboticeyes/gorexfile/encoding/rexfile"
 	"github.com/roboticeyes/k4ago"
 	"golang.org/x/image/tiff"
 )
@@ -77,7 +77,7 @@ func main() {
 	width := depthTransformed.Bounds().Dx()
 	height := depthTransformed.Bounds().Dy()
 
-	mesh := rex.Mesh{ID: 0}
+	mesh := rexfile.Mesh{ID: 0}
 
 	validMap := make(map[int]int)
 
@@ -119,7 +119,7 @@ func main() {
 
 			// triangle 1
 			if v00.valid && v01.valid && v11.valid {
-				mesh.Triangles = append(mesh.Triangles, rex.Triangle{
+				mesh.Triangles = append(mesh.Triangles, rexfile.Triangle{
 					V0: uint32(v00.idx),
 					V1: uint32(v11.idx),
 					V2: uint32(v01.idx),
@@ -127,7 +127,7 @@ func main() {
 			}
 			// triangle 2
 			if v00.valid && v11.valid && v10.valid {
-				mesh.Triangles = append(mesh.Triangles, rex.Triangle{
+				mesh.Triangles = append(mesh.Triangles, rexfile.Triangle{
 					V0: uint32(v00.idx),
 					V1: uint32(v10.idx),
 					V2: uint32(v11.idx),
@@ -137,15 +137,15 @@ func main() {
 	}
 
 	// assign material
-	mat := rex.NewMaterial(1)
+	mat := rexfile.NewMaterial(1)
 	mat.KdRgb = mgl32.Vec3{1, 1, 1}
 	mesh.MaterialID = 1
 
-	rexFile := rex.File{}
+	rexFile := rexfile.File{}
 	rexFile.Meshes = append(rexFile.Meshes, mesh)
 	rexFile.Materials = append(rexFile.Materials, mat)
 	var rexBuf bytes.Buffer
-	e := rex.NewEncoder(&rexBuf)
+	e := rexfile.NewEncoder(&rexBuf)
 	err = e.Encode(rexFile)
 	if err != nil {
 		panic(err)
